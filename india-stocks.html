@@ -1,0 +1,2175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BHARATQUANT — AI Stock Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #000000;
+    --white: #ffffff;
+    --gray-950: #050505;
+    --gray-900: #0a0a0a;
+    --gray-850: #111111;
+    --gray-800: #1a1a1a;
+    --gray-700: #2a2a2a;
+    --gray-600: #3a3a3a;
+    --gray-500: #555555;
+    --gray-400: #888888;
+    --gray-300: #aaaaaa;
+    --gray-200: #cccccc;
+    --gray-100: #e8e8e8;
+    --accent: #ffffff;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --border: rgba(255,255,255,0.08);
+    --border-bright: rgba(255,255,255,0.15);
+    --glass: rgba(255,255,255,0.03);
+    --glass-hover: rgba(255,255,255,0.06);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { font-size: 16px; scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 12px; height: 12px;
+    background: white;
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 99999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 99998;
+    transform: translate(-50%, -50%);
+    transition: all 0.15s ease;
+  }
+  body:hover .cursor { opacity: 1; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #000; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+  /* ──── NOISE OVERLAY ──── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.6;
+  }
+
+  /* ──── GRID BACKGROUND ──── */
+  .grid-bg {
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ──── NAV ──── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    height: 64px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(24px);
+  }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .nav-logo .dot {
+    width: 8px; height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--gray-400);
+    text-decoration: none;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    transition: color 0.2s;
+    font-family: 'DM Mono', monospace;
+  }
+  .nav-links a:hover, .nav-links a.active { color: white; }
+  .nav-links a.active {
+    border-bottom: 1px solid white;
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .market-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--green);
+  }
+  .market-status .blink {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
+  }
+
+  .btn-primary {
+    background: white;
+    color: black;
+    border: none;
+    padding: 8px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: none;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: var(--gray-200); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--gray-300);
+    border: 1px solid var(--border);
+    padding: 8px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: none;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--border-bright); color: white; }
+
+  /* ──── MAIN LAYOUT ──── */
+  .main-wrap {
+    display: grid;
+    grid-template-columns: 240px 1fr 280px;
+    grid-template-rows: 64px 1fr;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ──── SIDEBAR ──── */
+  .sidebar {
+    grid-row: 2;
+    grid-column: 1;
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    margin-bottom: 32px;
+    padding: 0 20px;
+  }
+  .sidebar-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 2px;
+    cursor: none;
+    transition: background 0.15s;
+    margin-bottom: 2px;
+  }
+  .sidebar-item:hover { background: var(--glass-hover); }
+  .sidebar-item.active { background: var(--glass); border-left: 2px solid white; }
+
+  .sidebar-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.75rem;
+    color: var(--gray-300);
+  }
+  .sidebar-item.active .sidebar-item-left { color: white; }
+
+  .sidebar-icon {
+    width: 14px; height: 14px;
+    opacity: 0.6;
+  }
+
+  .sidebar-badge {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    color: var(--gray-500);
+    letter-spacing: 0.05em;
+  }
+  .sidebar-badge.green { border-color: rgba(34,197,94,0.3); color: var(--green); }
+  .sidebar-badge.red { border-color: rgba(239,68,68,0.3); color: var(--red); }
+
+  /* ──── CONTENT ──── */
+  .content {
+    grid-row: 2;
+    grid-column: 2;
+    padding: 32px 40px;
+    overflow-y: auto;
+    max-height: calc(100vh - 64px);
+  }
+
+  /* ──── RIGHT PANEL ──── */
+  .right-panel {
+    grid-row: 2;
+    grid-column: 3;
+    border-left: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+  }
+
+  .right-section {
+    padding: 0 20px;
+    margin-bottom: 28px;
+  }
+  .right-section-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 16px;
+  }
+
+  /* ──── SECTION TITLE ──── */
+  .section-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  .section-sub {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+  }
+
+  /* ──── TICKER BAR ──── */
+  .ticker-bar {
+    background: var(--gray-900);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+    overflow: hidden;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Only show ticker on top, remove from grid row conflict */
+  .ticker-strip {
+    display: flex;
+    gap: 0;
+    animation: ticker 40s linear infinite;
+    white-space: nowrap;
+  }
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 28px;
+    border-right: 1px solid var(--border);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+  }
+  .ticker-name { color: var(--gray-300); font-weight: 500; }
+  .ticker-price { color: white; }
+  .ticker-chg.up { color: var(--green); }
+  .ticker-chg.dn { color: var(--red); }
+
+  /* ──── STATS GRID ──── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--gray-950);
+    padding: 20px 24px;
+    transition: background 0.2s;
+  }
+  .stat-card:hover { background: var(--gray-900); }
+  .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 10px;
+  }
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-change {
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .stat-change.up { color: var(--green); }
+  .stat-change.dn { color: var(--red); }
+
+  /* ──── SEARCH ──── */
+  .search-wrap {
+    position: relative;
+    margin-bottom: 32px;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--gray-900);
+    border: 1px solid var(--border);
+    color: white;
+    padding: 14px 20px 14px 48px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--border-bright); }
+  .search-input::placeholder { color: var(--gray-600); }
+  .search-icon {
+    position: absolute;
+    left: 18px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-500);
+    font-size: 0.8rem;
+  }
+  .search-kbd {
+    position: absolute;
+    right: 16px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: var(--gray-600);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ──── MAIN CHART AREA ──── */
+  .chart-area {
+    background: var(--gray-950);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+
+  .chart-header {
+    padding: 20px 24px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+    margin-bottom: 0;
+  }
+
+  .stock-info { }
+  .stock-ticker-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+  }
+  .stock-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .stock-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .stock-price {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+  .stock-chg-pill {
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    letter-spacing: 0.05em;
+  }
+  .stock-chg-pill.up {
+    background: rgba(34,197,94,0.12);
+    color: var(--green);
+    border: 1px solid rgba(34,197,94,0.2);
+  }
+  .stock-chg-pill.dn {
+    background: rgba(239,68,68,0.1);
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.2);
+  }
+
+  .chart-controls {
+    display: flex;
+    gap: 0;
+  }
+  .chart-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--gray-500);
+    padding: 6px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    cursor: none;
+    transition: all 0.15s;
+    margin-left: -1px;
+  }
+  .chart-btn:hover { color: white; border-color: var(--border-bright); z-index: 1; position: relative; }
+  .chart-btn.active { background: white; color: black; border-color: white; z-index: 1; position: relative; }
+
+  /* SVG Chart */
+  .chart-svg-wrap {
+    padding: 24px;
+    position: relative;
+  }
+
+  .chart-svg {
+    width: 100%;
+    height: 280px;
+    display: block;
+  }
+
+  /* AI PREDICTION overlay line */
+  .prediction-label {
+    position: absolute;
+    top: 30px;
+    right: 100px;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .prediction-label::before {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 1px;
+    background: rgba(255,255,255,0.5);
+    border-top: 1px dashed rgba(255,255,255,0.4);
+  }
+
+  /* ──── TWO COL GRID ──── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .two-col-item {
+    background: var(--gray-950);
+    padding: 24px;
+  }
+
+  /* ──── AI CARD ──── */
+  .ai-card {
+    background: var(--gray-950);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .ai-card:hover { border-color: var(--border-bright); }
+  .ai-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  }
+  .ai-card-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ai-badge {
+    background: rgba(255,255,255,0.08);
+    padding: 2px 8px;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    color: var(--gray-300);
+  }
+  .ai-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+  }
+  .ai-card-body {
+    font-size: 0.75rem;
+    line-height: 1.7;
+    color: var(--gray-300);
+  }
+
+  /* ──── CONFIDENCE BAR ──── */
+  .confidence-wrap {
+    margin-top: 16px;
+  }
+  .confidence-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.65rem;
+    color: var(--gray-400);
+    letter-spacing: 0.08em;
+  }
+  .confidence-track {
+    height: 2px;
+    background: var(--gray-800);
+    position: relative;
+  }
+  .confidence-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: white;
+    transition: width 1s ease-out;
+  }
+  .confidence-fill.amber { background: var(--amber); }
+  .confidence-fill.green { background: var(--green); }
+  .confidence-fill.red { background: var(--red); }
+
+  /* ──── RECOMMENDATION BOX ──── */
+  .rec-box {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .rec-item {
+    flex: 1;
+    background: var(--gray-950);
+    padding: 20px 16px;
+    text-align: center;
+    cursor: none;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .rec-item:hover { background: var(--gray-900); }
+  .rec-item.active-buy { background: rgba(34,197,94,0.06); }
+  .rec-item.active-buy::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--green);
+  }
+  .rec-item.active-sell { background: rgba(239,68,68,0.06); }
+  .rec-item.active-sell::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--red);
+  }
+  .rec-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .rec-label.buy { color: var(--green); }
+  .rec-label.hold { color: var(--amber); }
+  .rec-label.sell { color: var(--red); }
+  .rec-sub {
+    font-size: 0.6rem;
+    color: var(--gray-500);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .rec-pct {
+    font-size: 0.8rem;
+    margin-top: 8px;
+    font-family: 'DM Mono', monospace;
+  }
+  .rec-pct.buy { color: var(--green); }
+  .rec-pct.hold { color: var(--amber); }
+  .rec-pct.sell { color: var(--red); }
+
+  /* ──── INDICATORS GRID ──── */
+  .indicators-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .indicator-cell {
+    background: var(--gray-950);
+    padding: 18px 20px;
+    transition: background 0.15s;
+  }
+  .indicator-cell:hover { background: var(--gray-900); }
+  .ind-name {
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 8px;
+  }
+  .ind-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .ind-signal {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ind-signal.bull { color: var(--green); }
+  .ind-signal.bear { color: var(--red); }
+  .ind-signal.neutral { color: var(--amber); }
+
+  /* ──── RISK METER ──── */
+  .risk-meter {
+    position: relative;
+    padding: 20px;
+    text-align: center;
+  }
+  .risk-arc {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto 12px;
+    display: block;
+  }
+  .risk-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--amber);
+  }
+  .risk-sub {
+    font-size: 0.65rem;
+    color: var(--gray-500);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ──── HEALTH SCORE ──── */
+  .health-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .health-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .health-name {
+    font-size: 0.65rem;
+    color: var(--gray-400);
+    letter-spacing: 0.06em;
+    width: 80px;
+    flex-shrink: 0;
+  }
+  .health-bar-track {
+    flex: 1;
+    height: 2px;
+    background: var(--gray-800);
+    position: relative;
+  }
+  .health-bar-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: white;
+  }
+  .health-bar-fill.amber { background: var(--amber); }
+  .health-bar-fill.green { background: var(--green); }
+  .health-bar-fill.red { background: var(--red); }
+  .health-score {
+    font-size: 0.65rem;
+    color: var(--gray-400);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ──── NEWS ITEMS ──── */
+  .news-item {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 0;
+    cursor: none;
+    transition: opacity 0.15s;
+  }
+  .news-item:hover { opacity: 0.8; }
+  .news-item:last-child { border-bottom: none; }
+  .news-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .news-source {
+    font-size: 0.58rem;
+    color: var(--gray-500);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .news-sentiment {
+    font-size: 0.58rem;
+    padding: 1px 6px;
+    letter-spacing: 0.06em;
+  }
+  .news-sentiment.pos { background: rgba(34,197,94,0.1); color: var(--green); }
+  .news-sentiment.neg { background: rgba(239,68,68,0.1); color: var(--red); }
+  .news-sentiment.neu { background: rgba(255,255,255,0.05); color: var(--gray-400); }
+  .news-title {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--gray-200);
+  }
+
+  /* ──── WATCHLIST ──── */
+  .watchlist-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: none;
+    transition: opacity 0.15s;
+  }
+  .watchlist-item:hover { opacity: 0.7; }
+  .watchlist-item:last-child { border-bottom: none; }
+  .wl-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .wl-full {
+    font-size: 0.6rem;
+    color: var(--gray-500);
+    letter-spacing: 0.04em;
+  }
+  .wl-right { text-align: right; }
+  .wl-price {
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 2px;
+  }
+  .wl-chg {
+    font-size: 0.6rem;
+  }
+  .wl-chg.up { color: var(--green); }
+  .wl-chg.dn { color: var(--red); }
+
+  /* ──── MINI SPARKLINE ──── */
+  .sparkline {
+    width: 56px;
+    height: 24px;
+    margin: 0 8px;
+  }
+
+  /* ──── SECTOR COMPARISON ──── */
+  .sector-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sector-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sector-name {
+    font-size: 0.62rem;
+    color: var(--gray-400);
+    letter-spacing: 0.06em;
+    width: 72px;
+    flex-shrink: 0;
+  }
+  .sector-track {
+    flex: 1;
+    height: 6px;
+    background: var(--gray-800);
+    position: relative;
+  }
+  .sector-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: white;
+  }
+  .sector-fill.up { background: var(--green); }
+  .sector-fill.dn { background: var(--red); }
+  .sector-pct {
+    font-size: 0.62rem;
+    width: 40px;
+    text-align: right;
+  }
+  .sector-pct.up { color: var(--green); }
+  .sector-pct.dn { color: var(--red); }
+
+  /* ──── QUARTERLY TABLE ──── */
+  .q-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.7rem;
+  }
+  .q-table th {
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    padding: 8px 0;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .q-table td {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--gray-200);
+  }
+  .q-table td:not(:first-child) { font-family: 'DM Mono', monospace; }
+  .q-table .up { color: var(--green); }
+  .q-table .dn { color: var(--red); }
+
+  /* ──── PORTFOLIO ──── */
+  .portfolio-item {
+    background: var(--gray-950);
+    border: 1px solid var(--border);
+    padding: 16px 20px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.15s;
+  }
+  .portfolio-item:hover { border-color: var(--border-bright); }
+  .pf-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .pf-qty {
+    font-size: 0.62rem;
+    color: var(--gray-500);
+    letter-spacing: 0.06em;
+  }
+  .pf-right { text-align: right; }
+  .pf-value {
+    font-size: 0.85rem;
+    margin-bottom: 3px;
+    font-family: 'DM Mono', monospace;
+  }
+  .pf-pnl { font-size: 0.7rem; }
+  .pf-pnl.up { color: var(--green); }
+  .pf-pnl.dn { color: var(--red); }
+
+  /* ──── FUNDAMENTALS ──── */
+  .fundamental-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .fund-item {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+  .fund-key {
+    font-size: 0.6rem;
+    color: var(--gray-500);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .fund-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: white;
+  }
+
+  /* ──── ANIMATIONS ──── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes drawLine {
+    from { stroke-dashoffset: 1000; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  .fade-up { animation: fadeUp 0.5s ease-out both; }
+  .fade-up-1 { animation-delay: 0.05s; }
+  .fade-up-2 { animation-delay: 0.1s; }
+  .fade-up-3 { animation-delay: 0.15s; }
+  .fade-up-4 { animation-delay: 0.2s; }
+  .fade-up-5 { animation-delay: 0.25s; }
+
+  .chart-line {
+    stroke-dasharray: 1000;
+    animation: drawLine 2s ease-out 0.5s both;
+  }
+
+  /* ──── DIVIDER ──── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+
+  /* ──── INDEX BAR ──── */
+  .index-bar {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .index-item {
+    flex: 1;
+    background: var(--gray-950);
+    padding: 14px 18px;
+    transition: background 0.15s;
+    cursor: none;
+  }
+  .index-item:hover { background: var(--gray-900); }
+  .index-name {
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+    margin-bottom: 6px;
+  }
+  .index-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .index-chg { font-size: 0.68rem; }
+  .index-chg.up { color: var(--green); }
+  .index-chg.dn { color: var(--red); }
+
+  /* ──── SCROLLING NOTICE ──── */
+  .notice-bar {
+    background: white;
+    color: black;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 24px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+  }
+  .notice-text {
+    animation: ticker 20s linear infinite;
+    white-space: nowrap;
+    display: flex;
+    gap: 40px;
+  }
+  .notice-dot { margin: 0 12px; opacity: 0.4; }
+
+  /* ──── PREDICTION MINI ──── */
+  .predict-row {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    margin-bottom: 32px;
+  }
+  .predict-cell {
+    flex: 1;
+    background: var(--gray-950);
+    padding: 16px 20px;
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .predict-cell:hover { border-color: var(--border-bright); }
+  .predict-horizon {
+    font-size: 0.58rem;
+    color: var(--gray-500);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .predict-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .predict-growth {
+    font-size: 0.7rem;
+  }
+  .predict-growth.up { color: var(--green); }
+  .predict-growth.dn { color: var(--red); }
+  .predict-conf {
+    font-size: 0.6rem;
+    color: var(--gray-500);
+    margin-top: 8px;
+    letter-spacing: 0.06em;
+  }
+
+  /* ──── RESPONSIVE ──── */
+  @media (max-width: 1200px) {
+    .main-wrap { grid-template-columns: 200px 1fr; }
+    .right-panel { display: none; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    nav { padding: 0 20px; }
+    .nav-links { display: none; }
+    .main-wrap { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .content { padding: 20px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .two-col, .indicators-grid { grid-template-columns: 1fr; }
+    .predict-row { flex-wrap: wrap; }
+    .predict-cell { min-width: 45%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Grid background -->
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="dot"></div>
+    BHARATQUANT
+  </div>
+  <ul class="nav-links">
+    <li><a href="#" class="active">Dashboard</a></li>
+    <li><a href="#">Markets</a></li>
+    <li><a href="#">Screener</a></li>
+    <li><a href="#">Portfolio</a></li>
+    <li><a href="#">AI Signals</a></li>
+    <li><a href="#">News</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="market-status">
+      <div class="blink"></div>
+      NSE LIVE
+    </div>
+    <button class="btn-ghost">Watchlist</button>
+    <button class="btn-primary">Sign In</button>
+  </div>
+</nav>
+
+<!-- TICKER BAR (below nav, but part of flow) -->
+<div style="position:fixed;top:64px;left:0;right:0;z-index:900;background:#050505;border-bottom:1px solid var(--border);height:36px;overflow:hidden;display:flex;align-items:center;">
+  <div class="ticker-strip" style="display:flex;gap:0;">
+    <!-- Doubled for seamless loop -->
+    <div class="ticker-item"><span class="ticker-name">RELIANCE</span><span class="ticker-price">₹2,847.30</span><span class="ticker-chg up">+1.24%</span></div>
+    <div class="ticker-item"><span class="ticker-name">TCS</span><span class="ticker-price">₹4,123.55</span><span class="ticker-chg dn">-0.38%</span></div>
+    <div class="ticker-item"><span class="ticker-name">HDFC BANK</span><span class="ticker-price">₹1,672.90</span><span class="ticker-chg up">+0.87%</span></div>
+    <div class="ticker-item"><span class="ticker-name">INFY</span><span class="ticker-price">₹1,534.20</span><span class="ticker-chg up">+2.15%</span></div>
+    <div class="ticker-item"><span class="ticker-name">BHARTIARTL</span><span class="ticker-price">₹1,289.45</span><span class="ticker-chg up">+0.62%</span></div>
+    <div class="ticker-item"><span class="ticker-name">ICICI BANK</span><span class="ticker-price">₹1,198.70</span><span class="ticker-chg dn">-0.45%</span></div>
+    <div class="ticker-item"><span class="ticker-name">WIPRO</span><span class="ticker-price">₹512.30</span><span class="ticker-chg dn">-1.02%</span></div>
+    <div class="ticker-item"><span class="ticker-name">LT</span><span class="ticker-price">₹3,456.80</span><span class="ticker-chg up">+0.91%</span></div>
+    <div class="ticker-item"><span class="ticker-name">AXISBANK</span><span class="ticker-price">₹1,087.65</span><span class="ticker-chg up">+1.33%</span></div>
+    <div class="ticker-item"><span class="ticker-name">SUNPHARMA</span><span class="ticker-price">₹1,720.40</span><span class="ticker-chg up">+0.55%</span></div>
+    <!-- Duplicate -->
+    <div class="ticker-item"><span class="ticker-name">RELIANCE</span><span class="ticker-price">₹2,847.30</span><span class="ticker-chg up">+1.24%</span></div>
+    <div class="ticker-item"><span class="ticker-name">TCS</span><span class="ticker-price">₹4,123.55</span><span class="ticker-chg dn">-0.38%</span></div>
+    <div class="ticker-item"><span class="ticker-name">HDFC BANK</span><span class="ticker-price">₹1,672.90</span><span class="ticker-chg up">+0.87%</span></div>
+    <div class="ticker-item"><span class="ticker-name">INFY</span><span class="ticker-price">₹1,534.20</span><span class="ticker-chg up">+2.15%</span></div>
+    <div class="ticker-item"><span class="ticker-name">BHARTIARTL</span><span class="ticker-price">₹1,289.45</span><span class="ticker-chg up">+0.62%</span></div>
+    <div class="ticker-item"><span class="ticker-name">ICICI BANK</span><span class="ticker-price">₹1,198.70</span><span class="ticker-chg dn">-0.45%</span></div>
+    <div class="ticker-item"><span class="ticker-name">WIPRO</span><span class="ticker-price">₹512.30</span><span class="ticker-chg dn">-1.02%</span></div>
+    <div class="ticker-item"><span class="ticker-name">LT</span><span class="ticker-price">₹3,456.80</span><span class="ticker-chg up">+0.91%</span></div>
+    <div class="ticker-item"><span class="ticker-name">AXISBANK</span><span class="ticker-price">₹1,087.65</span><span class="ticker-chg up">+1.33%</span></div>
+    <div class="ticker-item"><span class="ticker-name">SUNPHARMA</span><span class="ticker-price">₹1,720.40</span><span class="ticker-chg up">+0.55%</span></div>
+  </div>
+</div>
+
+<!-- MAIN WRAP -->
+<div class="main-wrap" style="margin-top:100px;">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Indices</div>
+      <div class="sidebar-item active">
+        <div class="sidebar-item-left">
+          <svg class="sidebar-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,10 4,6 7,8 10,3 13,5"/></svg>
+          NIFTY 50
+        </div>
+        <span class="sidebar-badge green">+0.84%</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">
+          <svg class="sidebar-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,10 4,6 7,8 10,3 13,5"/></svg>
+          SENSEX
+        </div>
+        <span class="sidebar-badge green">+0.71%</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">
+          <svg class="sidebar-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,8 4,6 7,9 10,4 13,7"/></svg>
+          NIFTY BANK
+        </div>
+        <span class="sidebar-badge red">-0.32%</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">
+          <svg class="sidebar-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,9 4,5 7,7 10,3 13,4"/></svg>
+          NIFTY IT
+        </div>
+        <span class="sidebar-badge green">+1.47%</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">
+          <svg class="sidebar-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1,7 4,5 7,8 10,3 13,6"/></svg>
+          MIDCAP 100
+        </div>
+        <span class="sidebar-badge green">+0.29%</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Top Signals</div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">
+          <svg class="sidebar-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><polyline points="5,7 7,9 9,5"/></svg>
+          RELIANCE
+        </div>
+        <span class="sidebar-badge green">BUY</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">
+          <svg class="sidebar-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><polyline points="5,7 7,9 9,5"/></svg>
+          INFY
+        </div>
+        <span class="sidebar-badge green">BUY</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">
+          <svg class="sidebar-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><line x1="5" y1="7" x2="9" y2="7"/></svg>
+          TCS
+        </div>
+        <span class="sidebar-badge" style="border-color:rgba(245,158,11,0.3);color:var(--amber)">HOLD</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">
+          <svg class="sidebar-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><line x1="7" y1="5" x2="7" y2="9"/></svg>
+          WIPRO
+        </div>
+        <span class="sidebar-badge red">SELL</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Sectors</div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">IT</div>
+        <span class="sidebar-badge green">+1.8%</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">BANKING</div>
+        <span class="sidebar-badge red">-0.4%</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">PHARMA</div>
+        <span class="sidebar-badge green">+0.6%</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">AUTO</div>
+        <span class="sidebar-badge green">+1.1%</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-item-left">ENERGY</div>
+        <span class="sidebar-badge red">-0.2%</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- SEARCH -->
+    <div class="search-wrap fade-up">
+      <span class="search-icon">⌕</span>
+      <input type="text" class="search-input" placeholder="Search NSE / BSE stocks, indices, sectors..." value="">
+      <span class="search-kbd">⌘K</span>
+    </div>
+
+    <!-- INDEX BAR -->
+    <div class="index-bar fade-up fade-up-1">
+      <div class="index-item">
+        <div class="index-name">NIFTY 50</div>
+        <div class="index-val">23,847.30</div>
+        <div class="index-chg up">▲ 198.45 (+0.84%)</div>
+      </div>
+      <div class="index-item">
+        <div class="index-name">SENSEX</div>
+        <div class="index-val">78,523.10</div>
+        <div class="index-chg up">▲ 553.20 (+0.71%)</div>
+      </div>
+      <div class="index-item">
+        <div class="index-name">NIFTY BANK</div>
+        <div class="index-val">51,234.80</div>
+        <div class="index-chg dn">▼ 164.30 (-0.32%)</div>
+      </div>
+      <div class="index-item">
+        <div class="index-name">INDIA VIX</div>
+        <div class="index-val">14.82</div>
+        <div class="index-chg dn">▼ 0.38 (-2.50%)</div>
+      </div>
+      <div class="index-item">
+        <div class="index-name">USD/INR</div>
+        <div class="index-val">83.47</div>
+        <div class="index-chg up">▲ 0.12 (+0.14%)</div>
+      </div>
+    </div>
+
+    <!-- NOTICE BAR -->
+    <div class="notice-bar fade-up fade-up-2" style="overflow:hidden;">
+      <div class="notice-text">
+        <span>⚡ AI Signal: RELIANCE.NS — STRONG BUY (Confidence 87%)</span>
+        <span>•</span>
+        <span>Q4 FY25 Results: TCS beats estimates by 4.2% — EPS ₹28.40</span>
+        <span>•</span>
+        <span>RBI keeps repo rate unchanged at 6.50%</span>
+        <span>•</span>
+        <span>FII Net Buy: ₹4,280 Cr | DII Net Sell: ₹1,120 Cr</span>
+        <span>•</span>
+        <span>⚡ AI Signal: RELIANCE.NS — STRONG BUY (Confidence 87%)</span>
+        <span>•</span>
+        <span>Q4 FY25 Results: TCS beats estimates by 4.2% — EPS ₹28.40</span>
+      </div>
+    </div>
+
+    <!-- MAIN CHART -->
+    <div class="chart-area fade-up fade-up-2">
+      <div class="chart-header">
+        <div class="stock-info">
+          <div class="stock-ticker-label">NSE · EQUITY · NIFTY 50 CONSTITUENT</div>
+          <div class="stock-name">Reliance Industries Ltd.</div>
+          <div class="stock-price-row">
+            <div class="stock-price">₹2,847.30</div>
+            <span class="stock-chg-pill up">▲ 34.85 (1.24%)</span>
+            <span style="font-size:0.65rem;color:var(--gray-500);margin-left:4px;">Today</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
+          <div class="chart-controls">
+            <button class="chart-btn">1D</button>
+            <button class="chart-btn">1W</button>
+            <button class="chart-btn active">1M</button>
+            <button class="chart-btn">3M</button>
+            <button class="chart-btn">1Y</button>
+            <button class="chart-btn">5Y</button>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="chart-btn active" style="font-size:0.58rem;">Candle</button>
+            <button class="chart-btn" style="font-size:0.58rem;">Line</button>
+            <button class="chart-btn" style="font-size:0.58rem;">Area</button>
+            <button class="chart-btn" style="font-size:0.58rem;">+ Indicators</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-svg-wrap">
+        <div class="prediction-label">AI PREDICTION</div>
+        <svg class="chart-svg" viewBox="0 0 800 280" preserveAspectRatio="none" id="mainChart">
+          <!-- Grid lines -->
+          <line x1="0" y1="56" x2="800" y2="56" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="112" x2="800" y2="112" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="168" x2="800" y2="168" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="224" x2="800" y2="224" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="160" y1="0" x2="160" y2="280" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+          <line x1="320" y1="0" x2="320" y2="280" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+          <line x1="480" y1="0" x2="480" y2="280" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+          <line x1="640" y1="0" x2="640" y2="280" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+
+          <!-- Price labels -->
+          <text x="4" y="52" fill="rgba(255,255,255,0.25)" font-size="9" font-family="DM Mono">3100</text>
+          <text x="4" y="108" fill="rgba(255,255,255,0.25)" font-size="9" font-family="DM Mono">2950</text>
+          <text x="4" y="164" fill="rgba(255,255,255,0.25)" font-size="9" font-family="DM Mono">2800</text>
+          <text x="4" y="220" fill="rgba(255,255,255,0.25)" font-size="9" font-family="DM Mono">2650</text>
+
+          <!-- Date labels -->
+          <text x="30" y="274" fill="rgba(255,255,255,0.2)" font-size="8" font-family="DM Mono">Jan</text>
+          <text x="155" y="274" fill="rgba(255,255,255,0.2)" font-size="8" font-family="DM Mono">Feb</text>
+          <text x="315" y="274" fill="rgba(255,255,255,0.2)" font-size="8" font-family="DM Mono">Mar</text>
+          <text x="475" y="274" fill="rgba(255,255,255,0.2)" font-size="8" font-family="DM Mono">Apr</text>
+          <text x="635" y="274" fill="rgba(255,255,255,0.2)" font-size="8" font-family="DM Mono">May</text>
+
+          <!-- Area fill (historical) -->
+          <defs>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.12)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+            </linearGradient>
+            <linearGradient id="predGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.06)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+            </linearGradient>
+          </defs>
+
+          <path d="M0,200 C20,195 40,185 60,190 C80,195 100,210 120,200 C140,190 160,175 180,170 C200,165 220,180 240,175 C260,170 280,155 300,148 C320,141 340,150 360,145 C380,140 400,130 420,120 C440,110 460,105 480,100 C500,95 520,105 540,100 C560,95 580,85 600,90 C620,95 640,108 660,104 L660,280 L0,280 Z" fill="url(#areaGrad)"/>
+
+          <!-- Historical price line -->
+          <path class="chart-line" d="M0,200 C20,195 40,185 60,190 C80,195 100,210 120,200 C140,190 160,175 180,170 C200,165 220,180 240,175 C260,170 280,155 300,148 C320,141 340,150 360,145 C380,140 400,130 420,120 C440,110 460,105 480,100 C500,95 520,105 540,100 C560,95 580,85 600,90 C620,95 640,108 660,104"
+            fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+
+          <!-- Prediction dotted continuation -->
+          <path d="M660,104 C680,100 700,88 720,82 C740,76 760,70 780,64 L800,60" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1.5" stroke-dasharray="5,4" stroke-linecap="round"/>
+
+          <!-- Prediction confidence band -->
+          <path d="M660,104 C680,95 700,78 720,70 C740,62 760,54 780,46 L800,42 L800,78 C780,82 760,86 740,90 C720,94 700,98 680,112 L660,118 Z" fill="url(#predGrad)" opacity="0.6"/>
+
+          <!-- EMA line -->
+          <path d="M0,210 C30,205 60,200 90,195 C120,190 150,183 180,178 C210,173 240,175 270,168 C300,161 330,155 360,150 C390,145 420,135 450,128 C480,121 510,115 540,112 C570,109 600,106 630,108 C650,109 655,108 660,107" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+
+          <!-- Volume bars at bottom -->
+          <rect x="2" y="252" width="8" height="18" fill="rgba(34,197,94,0.3)"/>
+          <rect x="14" y="248" width="8" height="22" fill="rgba(34,197,94,0.3)"/>
+          <rect x="26" y="255" width="8" height="15" fill="rgba(239,68,68,0.3)"/>
+          <rect x="38" y="250" width="8" height="20" fill="rgba(34,197,94,0.3)"/>
+          <rect x="50" y="258" width="8" height="12" fill="rgba(239,68,68,0.3)"/>
+          <rect x="62" y="244" width="8" height="26" fill="rgba(34,197,94,0.3)"/>
+          <rect x="74" y="252" width="8" height="18" fill="rgba(34,197,94,0.3)"/>
+          <rect x="86" y="256" width="8" height="14" fill="rgba(239,68,68,0.3)"/>
+          <rect x="98" y="247" width="8" height="23" fill="rgba(34,197,94,0.3)"/>
+          <rect x="110" y="254" width="8" height="16" fill="rgba(34,197,94,0.3)"/>
+          <rect x="122" y="259" width="8" height="11" fill="rgba(239,68,68,0.3)"/>
+          <rect x="134" y="245" width="8" height="25" fill="rgba(34,197,94,0.3)"/>
+          <rect x="146" y="251" width="8" height="19" fill="rgba(239,68,68,0.3)"/>
+
+          <!-- Current price horizontal line -->
+          <line x1="0" y1="104" x2="660" y2="104" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="2,4"/>
+          <rect x="756" y="98" width="44" height="12" fill="rgba(255,255,255,0.15)"/>
+          <text x="760" y="108" fill="white" font-size="8" font-family="DM Mono">₹2847</text>
+
+          <!-- Prediction marker -->
+          <circle cx="660" cy="104" r="3" fill="white"/>
+          <line x1="660" y1="0" x2="660" y2="260" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="3,3"/>
+          <text x="664" y="14" fill="rgba(255,255,255,0.4)" font-size="8" font-family="DM Mono">TODAY</text>
+        </svg>
+
+        <!-- Chart footer stats -->
+        <div style="display:flex;gap:32px;padding-top:12px;border-top:1px solid var(--border);margin-top:4px;">
+          <div>
+            <div style="font-size:0.58rem;color:var(--gray-500);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">Open</div>
+            <div style="font-size:0.78rem;font-family:'DM Mono',monospace;">₹2,815.00</div>
+          </div>
+          <div>
+            <div style="font-size:0.58rem;color:var(--gray-500);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">High</div>
+            <div style="font-size:0.78rem;font-family:'DM Mono',monospace;color:var(--green);">₹2,861.50</div>
+          </div>
+          <div>
+            <div style="font-size:0.58rem;color:var(--gray-500);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">Low</div>
+            <div style="font-size:0.78rem;font-family:'DM Mono',monospace;color:var(--red);">₹2,804.20</div>
+          </div>
+          <div>
+            <div style="font-size:0.58rem;color:var(--gray-500);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">52W High</div>
+            <div style="font-size:0.78rem;font-family:'DM Mono',monospace;">₹3,021.90</div>
+          </div>
+          <div>
+            <div style="font-size:0.58rem;color:var(--gray-500);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">52W Low</div>
+            <div style="font-size:0.78rem;font-family:'DM Mono',monospace;">₹2,194.70</div>
+          </div>
+          <div>
+            <div style="font-size:0.58rem;color:var(--gray-500);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">Volume</div>
+            <div style="font-size:0.78rem;font-family:'DM Mono',monospace;">1.24 Cr</div>
+          </div>
+          <div>
+            <div style="font-size:0.58rem;color:var(--gray-500);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">Mkt Cap</div>
+            <div style="font-size:0.78rem;font-family:'DM Mono',monospace;">₹19.27 L Cr</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI PREDICTIONS -->
+    <div class="section-header fade-up fade-up-3">
+      <div>
+        <div class="section-title">AI Price Predictions</div>
+        <div class="section-sub">RELIANCE.NS · Model v3.2 · Updated 15:30 IST</div>
+      </div>
+      <div style="font-size:0.65rem;color:var(--gray-500);letter-spacing:0.06em;">Powered by LSTM + Transformer ensemble</div>
+    </div>
+
+    <div class="predict-row fade-up fade-up-3">
+      <div class="predict-cell">
+        <div class="predict-horizon">1 Week</div>
+        <div class="predict-val">₹2,920</div>
+        <div class="predict-growth up">▲ +2.55%</div>
+        <div class="predict-conf">Confidence: 82%</div>
+      </div>
+      <div class="predict-cell">
+        <div class="predict-horizon">1 Month</div>
+        <div class="predict-val">₹3,080</div>
+        <div class="predict-growth up">▲ +8.17%</div>
+        <div class="predict-conf">Confidence: 74%</div>
+      </div>
+      <div class="predict-cell">
+        <div class="predict-horizon">3 Months</div>
+        <div class="predict-val">₹3,240</div>
+        <div class="predict-growth up">▲ +13.79%</div>
+        <div class="predict-conf">Confidence: 64%</div>
+      </div>
+      <div class="predict-cell">
+        <div class="predict-horizon">6 Months</div>
+        <div class="predict-val">₹3,450</div>
+        <div class="predict-growth up">▲ +21.18%</div>
+        <div class="predict-conf">Confidence: 56%</div>
+      </div>
+      <div class="predict-cell">
+        <div class="predict-horizon">1 Year</div>
+        <div class="predict-val">₹3,780</div>
+        <div class="predict-growth up">▲ +32.77%</div>
+        <div class="predict-conf">Confidence: 48%</div>
+      </div>
+    </div>
+
+    <!-- BUY/HOLD/SELL -->
+    <div class="section-header fade-up">
+      <div class="section-title">AI Recommendation</div>
+    </div>
+    <div class="rec-box fade-up">
+      <div class="rec-item active-buy">
+        <div class="rec-label buy">BUY</div>
+        <div class="rec-pct buy">68%</div>
+        <div class="rec-sub">Analysts agree</div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-label hold">HOLD</div>
+        <div class="rec-pct hold">24%</div>
+        <div class="rec-sub">Analysts agree</div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-label sell">SELL</div>
+        <div class="rec-pct sell">8%</div>
+        <div class="rec-sub">Analysts agree</div>
+      </div>
+    </div>
+
+    <!-- AI EXPLANATION CARDS -->
+    <div class="section-header fade-up">
+      <div class="section-title">AI Analysis</div>
+    </div>
+
+    <div class="two-col fade-up" style="margin-bottom:16px;">
+      <div class="two-col-item">
+        <div class="ai-card" style="border:none;padding:0;background:transparent;">
+          <div class="ai-card-label">
+            <span>TREND ANALYSIS</span>
+            <span class="ai-badge">AI</span>
+          </div>
+          <div class="ai-card-title">Strong Upward Momentum Detected</div>
+          <div class="ai-card-body">
+            Reliance Industries shows a confirmed bullish trend with price trading above both 50-day and 200-day EMAs. The Golden Cross formation on June 3rd signals strong institutional accumulation. RSI at 64.2 indicates healthy upward momentum without overbought conditions.
+          </div>
+          <div class="confidence-wrap">
+            <div class="confidence-header">
+              <span>Trend Strength</span>
+              <span>82%</span>
+            </div>
+            <div class="confidence-track"><div class="confidence-fill green" style="width:82%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="two-col-item">
+        <div class="ai-card" style="border:none;padding:0;background:transparent;">
+          <div class="ai-card-label">
+            <span>SENTIMENT ANALYSIS</span>
+            <span class="ai-badge">AI</span>
+          </div>
+          <div class="ai-card-title">News Sentiment Strongly Positive</div>
+          <div class="ai-card-body">
+            Last 48 hours news corpus (127 articles) analyzed. 78% positive sentiment driven by Jio Financial Services demerger progress, Reliance Retail's Q4 beat, and new green energy partnerships. Institutional FII flows show ₹2,840 Cr net buying this week.
+          </div>
+          <div class="confidence-wrap">
+            <div class="confidence-header">
+              <span>Sentiment Score</span>
+              <span>78%</span>
+            </div>
+            <div class="confidence-track"><div class="confidence-fill green" style="width:78%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TECHNICAL INDICATORS -->
+    <div class="section-header fade-up">
+      <div class="section-title">Technical Indicators</div>
+    </div>
+    <div class="indicators-grid fade-up">
+      <div class="indicator-cell">
+        <div class="ind-name">RSI (14)</div>
+        <div class="ind-value">64.2</div>
+        <div class="ind-signal bull">● Bullish Zone</div>
+      </div>
+      <div class="indicator-cell">
+        <div class="ind-name">MACD</div>
+        <div class="ind-value">+18.4</div>
+        <div class="ind-signal bull">● Bullish Crossover</div>
+      </div>
+      <div class="indicator-cell">
+        <div class="ind-name">EMA (20)</div>
+        <div class="ind-value">₹2,798</div>
+        <div class="ind-signal bull">● Price Above EMA</div>
+      </div>
+      <div class="indicator-cell">
+        <div class="ind-name">SMA (50)</div>
+        <div class="ind-value">₹2,756</div>
+        <div class="ind-signal bull">● Price Above SMA</div>
+      </div>
+      <div class="indicator-cell">
+        <div class="ind-name">Bollinger Bands</div>
+        <div class="ind-value">Mid Band</div>
+        <div class="ind-signal neutral">● Neutral Zone</div>
+      </div>
+      <div class="indicator-cell">
+        <div class="ind-name">Stochastic</div>
+        <div class="ind-value">71.8</div>
+        <div class="ind-signal neutral">● Watch Level</div>
+      </div>
+      <div class="indicator-cell">
+        <div class="ind-name">ADX</div>
+        <div class="ind-value">28.4</div>
+        <div class="ind-signal bull">● Strong Trend</div>
+      </div>
+      <div class="indicator-cell">
+        <div class="ind-name">OBV</div>
+        <div class="ind-value">↑ Rising</div>
+        <div class="ind-signal bull">● Volume Confirming</div>
+      </div>
+    </div>
+
+    <!-- FUNDAMENTALS -->
+    <div class="section-header fade-up" style="margin-top:32px;">
+      <div class="section-title">Fundamental Analysis</div>
+    </div>
+    <div class="ai-card fade-up">
+      <div class="ai-card-label">KEY METRICS <span class="ai-badge">FY25</span></div>
+      <div class="fundamental-grid">
+        <div class="fund-item"><div class="fund-key">P/E Ratio</div><div class="fund-val">27.4x</div></div>
+        <div class="fund-item"><div class="fund-key">P/B Ratio</div><div class="fund-val">2.1x</div></div>
+        <div class="fund-item"><div class="fund-key">ROE</div><div class="fund-val" style="color:var(--green)">18.7%</div></div>
+        <div class="fund-item"><div class="fund-key">ROCE</div><div class="fund-val" style="color:var(--green)">14.2%</div></div>
+        <div class="fund-item"><div class="fund-key">Debt/Equity</div><div class="fund-val">0.38</div></div>
+        <div class="fund-item"><div class="fund-key">Revenue</div><div class="fund-val">₹9.01 L Cr</div></div>
+        <div class="fund-item"><div class="fund-key">Net Profit</div><div class="fund-val">₹69,621 Cr</div></div>
+        <div class="fund-item"><div class="fund-key">EPS</div><div class="fund-val">₹103.40</div></div>
+        <div class="fund-item"><div class="fund-key">Div Yield</div><div class="fund-val">0.32%</div></div>
+        <div class="fund-item"><div class="fund-key">Book Value</div><div class="fund-val">₹1,356</div></div>
+      </div>
+    </div>
+
+    <!-- QUARTERLY RESULTS -->
+    <div class="section-header fade-up" style="margin-top:32px;">
+      <div class="section-title">Quarterly Results</div>
+    </div>
+    <div class="ai-card fade-up">
+      <table class="q-table">
+        <thead>
+          <tr>
+            <th>Quarter</th>
+            <th>Revenue (Cr)</th>
+            <th>EBITDA (Cr)</th>
+            <th>Net Profit (Cr)</th>
+            <th>EPS</th>
+            <th>YoY Growth</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Q4 FY25</td>
+            <td>2,40,116</td>
+            <td>47,200</td>
+            <td>19,407</td>
+            <td>₹28.84</td>
+            <td class="up">▲ 7.3%</td>
+          </tr>
+          <tr>
+            <td>Q3 FY25</td>
+            <td>2,35,480</td>
+            <td>45,800</td>
+            <td>18,540</td>
+            <td>₹27.55</td>
+            <td class="up">▲ 4.8%</td>
+          </tr>
+          <tr>
+            <td>Q2 FY25</td>
+            <td>2,28,765</td>
+            <td>44,200</td>
+            <td>16,710</td>
+            <td>₹24.84</td>
+            <td class="dn">▼ -1.2%</td>
+          </tr>
+          <tr>
+            <td>Q1 FY25</td>
+            <td>2,36,450</td>
+            <td>46,100</td>
+            <td>15,138</td>
+            <td>₹22.50</td>
+            <td class="up">▲ 3.1%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PORTFOLIO -->
+    <div class="section-header fade-up" style="margin-top:32px;">
+      <div class="section-title">My Portfolio</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:0.65rem;color:var(--gray-500);">Total P&L:</span>
+        <span style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--green);">+₹1,24,582</span>
+      </div>
+    </div>
+    <div class="fade-up">
+      <div class="portfolio-item">
+        <div>
+          <div class="pf-name">RELIANCE</div>
+          <div class="pf-qty">50 shares · Avg ₹2,540.00</div>
+        </div>
+        <div class="pf-right">
+          <div class="pf-value">₹1,42,365</div>
+          <div class="pf-pnl up">+₹15,365 (+12.06%)</div>
+        </div>
+      </div>
+      <div class="portfolio-item">
+        <div>
+          <div class="pf-name">TCS</div>
+          <div class="pf-qty">20 shares · Avg ₹3,890.00</div>
+        </div>
+        <div class="pf-right">
+          <div class="pf-value">₹82,471</div>
+          <div class="pf-pnl up">+₹4,671 (+5.99%)</div>
+        </div>
+      </div>
+      <div class="portfolio-item">
+        <div>
+          <div class="pf-name">HDFC BANK</div>
+          <div class="pf-qty">100 shares · Avg ₹1,720.00</div>
+        </div>
+        <div class="pf-right">
+          <div class="pf-value">₹1,67,290</div>
+          <div class="pf-pnl dn">-₹4,710 (-2.74%)</div>
+        </div>
+      </div>
+      <div class="portfolio-item">
+        <div>
+          <div class="pf-name">INFY</div>
+          <div class="pf-qty">75 shares · Avg ₹1,410.00</div>
+        </div>
+        <div class="pf-right">
+          <div class="pf-value">₹1,15,065</div>
+          <div class="pf-pnl up">+₹9,315 (+8.80%)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEWS SENTIMENT -->
+    <div class="section-header fade-up" style="margin-top:32px;">
+      <div class="section-title">Market News</div>
+      <span style="font-size:0.65rem;color:var(--gray-500);">AI Sentiment Scored</span>
+    </div>
+    <div class="ai-card fade-up">
+      <div class="news-item">
+        <div class="news-meta">
+          <span class="news-source">Economic Times</span>
+          <span class="news-sentiment pos">Positive</span>
+          <span style="font-size:0.58rem;color:var(--gray-600);">2h ago</span>
+        </div>
+        <div class="news-title">Reliance Jio adds record 8.2 million subscribers in April; 5G rollout accelerates in Tier-2 cities</div>
+      </div>
+      <div class="news-item">
+        <div class="news-meta">
+          <span class="news-source">Mint</span>
+          <span class="news-sentiment pos">Positive</span>
+          <span style="font-size:0.58rem;color:var(--gray-600);">4h ago</span>
+        </div>
+        <div class="news-title">FII buying surges as India outperforms EM peers; Nifty targets 25,000 by December 2025</div>
+      </div>
+      <div class="news-item">
+        <div class="news-meta">
+          <span class="news-source">Bloomberg Quint</span>
+          <span class="news-sentiment neg">Negative</span>
+          <span style="font-size:0.58rem;color:var(--gray-600);">6h ago</span>
+        </div>
+        <div class="news-title">IT sector faces headwinds from US visa restrictions; TCS, Wipro guidance conservative for H1 FY26</div>
+      </div>
+      <div class="news-item">
+        <div class="news-meta">
+          <span class="news-source">CNBC TV18</span>
+          <span class="news-sentiment neu">Neutral</span>
+          <span style="font-size:0.58rem;color:var(--gray-600);">8h ago</span>
+        </div>
+        <div class="news-title">RBI policy meeting minutes: MPC remains focused on 4% inflation target; rate cut possible in August</div>
+      </div>
+    </div>
+
+    <!-- SECTOR COMPARISON -->
+    <div class="section-header fade-up" style="margin-top:32px;">
+      <div class="section-title">Sector Performance</div>
+      <span style="font-size:0.65rem;color:var(--gray-500);">Today · NSE Sectoral</span>
+    </div>
+    <div class="ai-card fade-up">
+      <div class="sector-bars">
+        <div class="sector-row">
+          <div class="sector-name">IT</div>
+          <div class="sector-track"><div class="sector-fill up" style="width:72%"></div></div>
+          <div class="sector-pct up">+1.84%</div>
+        </div>
+        <div class="sector-row">
+          <div class="sector-name">AUTO</div>
+          <div class="sector-track"><div class="sector-fill up" style="width:56%"></div></div>
+          <div class="sector-pct up">+1.12%</div>
+        </div>
+        <div class="sector-row">
+          <div class="sector-name">PHARMA</div>
+          <div class="sector-track"><div class="sector-fill up" style="width:36%"></div></div>
+          <div class="sector-pct up">+0.63%</div>
+        </div>
+        <div class="sector-row">
+          <div class="sector-name">FMCG</div>
+          <div class="sector-track"><div class="sector-fill up" style="width:24%"></div></div>
+          <div class="sector-pct up">+0.31%</div>
+        </div>
+        <div class="sector-row">
+          <div class="sector-name">REALTY</div>
+          <div class="sector-track"><div class="sector-fill dn" style="width:18%"></div></div>
+          <div class="sector-pct dn">-0.22%</div>
+        </div>
+        <div class="sector-row">
+          <div class="sector-name">BANKING</div>
+          <div class="sector-track"><div class="sector-fill dn" style="width:28%"></div></div>
+          <div class="sector-pct dn">-0.38%</div>
+        </div>
+        <div class="sector-row">
+          <div class="sector-name">METAL</div>
+          <div class="sector-track"><div class="sector-fill dn" style="width:44%"></div></div>
+          <div class="sector-pct dn">-0.74%</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:60px;"></div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+
+    <!-- RISK METER -->
+    <div class="right-section">
+      <div class="right-section-title">Risk Meter</div>
+      <div class="risk-meter">
+        <svg class="risk-arc" viewBox="0 0 200 110">
+          <!-- Track -->
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12" stroke-linecap="round"/>
+          <!-- Low risk (green) -->
+          <path d="M 20 100 A 80 80 0 0 1 73 26" fill="none" stroke="rgba(34,197,94,0.4)" stroke-width="12" stroke-linecap="round"/>
+          <!-- Medium risk (amber) -->
+          <path d="M 73 26 A 80 80 0 0 1 127 26" fill="none" stroke="rgba(245,158,11,0.6)" stroke-width="12" stroke-linecap="round"/>
+          <!-- High risk (remaining) -->
+          <path d="M 127 26 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12" stroke-linecap="round"/>
+          <!-- Needle -->
+          <line x1="100" y1="100" x2="108" y2="32" stroke="white" stroke-width="2" stroke-linecap="round" transform="rotate(-5, 100, 100)"/>
+          <circle cx="100" cy="100" r="5" fill="white"/>
+        </svg>
+        <div class="risk-label">MODERATE</div>
+        <div class="risk-sub">Risk Score: 42/100</div>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:0 20px 24px;"></div>
+
+    <!-- STOCK HEALTH SCORE -->
+    <div class="right-section">
+      <div class="right-section-title">Stock Health Score</div>
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;letter-spacing:-0.05em;line-height:1;">78</div>
+        <div style="font-size:0.6rem;color:var(--gray-500);letter-spacing:0.15em;text-transform:uppercase;">/ 100 · GOOD</div>
+      </div>
+      <div class="health-grid">
+        <div class="health-row">
+          <div class="health-name">Valuation</div>
+          <div class="health-bar-track"><div class="health-bar-fill amber" style="width:62%"></div></div>
+          <div class="health-score">62</div>
+        </div>
+        <div class="health-row">
+          <div class="health-name">Growth</div>
+          <div class="health-bar-track"><div class="health-bar-fill green" style="width:84%"></div></div>
+          <div class="health-score">84</div>
+        </div>
+        <div class="health-row">
+          <div class="health-name">Profitability</div>
+          <div class="health-bar-track"><div class="health-bar-fill green" style="width:79%"></div></div>
+          <div class="health-score">79</div>
+        </div>
+        <div class="health-row">
+          <div class="health-name">Momentum</div>
+          <div class="health-bar-track"><div class="health-bar-fill green" style="width:88%"></div></div>
+          <div class="health-score">88</div>
+        </div>
+        <div class="health-row">
+          <div class="health-name">Solvency</div>
+          <div class="health-bar-track"><div class="health-bar-fill green" style="width:71%"></div></div>
+          <div class="health-score">71</div>
+        </div>
+        <div class="health-row">
+          <div class="health-name">Sentiment</div>
+          <div class="health-bar-track"><div class="health-bar-fill green" style="width:82%"></div></div>
+          <div class="health-score">82</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:0 20px 24px;"></div>
+
+    <!-- WATCHLIST -->
+    <div class="right-section">
+      <div class="right-section-title">Watchlist</div>
+      <div>
+        <div class="watchlist-item">
+          <div>
+            <div class="wl-name">RELIANCE</div>
+            <div class="wl-full">Reliance Industries</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 56 24">
+            <polyline points="0,18 8,16 16,19 24,14 32,12 40,10 48,8 56,7" fill="none" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+          </svg>
+          <div class="wl-right">
+            <div class="wl-price">₹2,847</div>
+            <div class="wl-chg up">+1.24%</div>
+          </div>
+        </div>
+        <div class="watchlist-item">
+          <div>
+            <div class="wl-name">TCS</div>
+            <div class="wl-full">Tata Consultancy</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 56 24">
+            <polyline points="0,10 8,11 16,9 24,12 32,10 40,13 48,14 56,16" fill="none" stroke="rgba(239,68,68,0.6)" stroke-width="1.5"/>
+          </svg>
+          <div class="wl-right">
+            <div class="wl-price">₹4,123</div>
+            <div class="wl-chg dn">-0.38%</div>
+          </div>
+        </div>
+        <div class="watchlist-item">
+          <div>
+            <div class="wl-name">INFY</div>
+            <div class="wl-full">Infosys Ltd.</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 56 24">
+            <polyline points="0,20 8,17 16,15 24,13 32,10 40,8 48,6 56,5" fill="none" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+          </svg>
+          <div class="wl-right">
+            <div class="wl-price">₹1,534</div>
+            <div class="wl-chg up">+2.15%</div>
+          </div>
+        </div>
+        <div class="watchlist-item">
+          <div>
+            <div class="wl-name">HDFC BANK</div>
+            <div class="wl-full">HDFC Bank Ltd.</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 56 24">
+            <polyline points="0,12 8,10 16,11 24,13 32,12 40,14 48,13 56,14" fill="none" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+          </svg>
+          <div class="wl-right">
+            <div class="wl-price">₹1,672</div>
+            <div class="wl-chg up">+0.87%</div>
+          </div>
+        </div>
+        <div class="watchlist-item">
+          <div>
+            <div class="wl-name">WIPRO</div>
+            <div class="wl-full">Wipro Limited</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 56 24">
+            <polyline points="0,8 8,9 16,12 24,14 32,16 40,15 48,17 56,18" fill="none" stroke="rgba(239,68,68,0.6)" stroke-width="1.5"/>
+          </svg>
+          <div class="wl-right">
+            <div class="wl-price">₹512</div>
+            <div class="wl-chg dn">-1.02%</div>
+          </div>
+        </div>
+        <div class="watchlist-item">
+          <div>
+            <div class="wl-name">LT</div>
+            <div class="wl-full">Larsen & Toubro</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 56 24">
+            <polyline points="0,16 8,13 16,11 24,9 32,11 40,8 48,7 56,6" fill="none" stroke="rgba(34,197,94,0.6)" stroke-width="1.5"/>
+          </svg>
+          <div class="wl-right">
+            <div class="wl-price">₹3,456</div>
+            <div class="wl-chg up">+0.91%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:0 20px 24px;"></div>
+
+    <!-- AI CONFIDENCE -->
+    <div class="right-section">
+      <div class="right-section-title">AI Confidence</div>
+      <div style="background:var(--gray-950);border:1px solid var(--border);padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <div style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-0.05em;">87%</div>
+          <div style="font-size:0.6rem;color:var(--green);letter-spacing:0.1em;text-transform:uppercase;border:1px solid rgba(34,197,94,0.3);padding:3px 8px;">HIGH</div>
+        </div>
+        <div class="confidence-track" style="margin-bottom:12px;">
+          <div class="confidence-fill green" style="width:87%"></div>
+        </div>
+        <div style="font-size:0.65rem;color:var(--gray-400);line-height:1.6;">
+          Based on 847 data points across price action, fundamentals, news sentiment, and institutional flows.
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+<!-- FOOTER -->
+<footer style="border-top:1px solid var(--border);background:var(--gray-950);padding:24px 40px;display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1;">
+  <div style="font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;letter-spacing:-0.02em;">BHARATQUANT</div>
+  <div style="font-size:0.6rem;color:var(--gray-500);letter-spacing:0.08em;text-transform:uppercase;">
+    NSE DATA DELAYED 15 MIN · AI PREDICTIONS FOR INFORMATIONAL PURPOSES ONLY · NOT SEBI REGISTERED
+  </div>
+  <div style="font-size:0.6rem;color:var(--gray-600);letter-spacing:0.06em;">v3.2.1 © 2025</div>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const cursorRing = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx + 'px';
+    cursor.style.top = my + 'px';
+  });
+
+  function animateRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    cursorRing.style.left = rx + 'px';
+    cursorRing.style.top = ry + 'px';
+    requestAnimationFrame(animateRing);
+  }
+  animateRing();
+
+  // Hover effects on interactive elements
+  document.querySelectorAll('button, .sidebar-item, .watchlist-item, .portfolio-item, .news-item, .index-item, .predict-cell, .indicator-cell, .rec-item').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.width = '20px';
+      cursor.style.height = '20px';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.width = '12px';
+      cursor.style.height = '12px';
+    });
+  });
+
+  // Chart button interactivity
+  document.querySelectorAll('.chart-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const parent = this.parentElement;
+      parent.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // Sidebar interactivity
+  document.querySelectorAll('.sidebar-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const section = this.closest('.sidebar-section');
+      section.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // Animate confidence bars on scroll
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.transition = 'width 1.2s cubic-bezier(0.4,0,0.2,1)';
+      }
+    });
+  }, { threshold: 0.3 });
+
+  document.querySelectorAll('.confidence-fill, .health-bar-fill, .sector-fill').forEach(el => {
+    observer.observe(el);
+  });
+
+  // Search interactivity
+  const searchInput = document.querySelector('.search-input');
+  const stocks = ['RELIANCE', 'TCS', 'HDFC BANK', 'INFOSYS', 'WIPRO', 'BHARTI AIRTEL', 'ITC', 'KOTAK MAHINDRA', 'LT', 'AXIS BANK', 'BAJAJ FINANCE', 'MARUTI SUZUKI', 'SUNPHARMA', 'HCL TECH', 'ASIAN PAINTS'];
+
+  searchInput.addEventListener('input', function() {
+    const val = this.value.toUpperCase();
+    // In a real app, this would trigger API call
+    if (val.length > 0) {
+      this.style.borderColor = 'rgba(255,255,255,0.2)';
+    } else {
+      this.style.borderColor = '';
+    }
+  });
+
+  // Live price simulation
+  function simulatePrices() {
+    document.querySelectorAll('.ticker-price').forEach(el => {
+      const price = parseFloat(el.textContent.replace('₹','').replace(',',''));
+      const change = (Math.random() - 0.5) * 2;
+      const newPrice = (price + change).toFixed(2);
+      el.textContent = '₹' + parseFloat(newPrice).toLocaleString('en-IN', {minimumFractionDigits: 2});
+    });
+  }
+  setInterval(simulatePrices, 3000);
+
+  // Intersection observer for fade-up animations
+  const fadeObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-up').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(12px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    fadeObserver.observe(el);
+  });
+</script>
+</body>
+</html>
